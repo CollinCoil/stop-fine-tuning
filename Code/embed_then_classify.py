@@ -8,7 +8,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import SVC
 from sklearn.neural_network import MLPClassifier
-from sklearn.ensemble import AdaBoostClassifier
+from sklearn.preprocessing import LabelEncoder
 from transformers import AutoTokenizer, AutoModel
 import torch
 from torch.utils.data import Dataset, DataLoader
@@ -40,15 +40,13 @@ CLASSIFIERS = {
     "KNN": KNeighborsClassifier,
     "SVM": SVC,
     "MLP": MLPClassifier,
-    "AdaBoost": AdaBoostClassifier
 }
 
 PARAMETERS = {
-    "LogisticRegression": {"C": [0.1, 1, 10], "max_iter": [250], "solver": ["saga"]},
-    "KNN": {"n_neighbors": [3, 5, 7], "p": [1, 2]},
-    "SVM": {"C": [0.1, 1, 10], "kernel": ["linear", "rbf", "sigmoid"]},
-    "MLP": {"hidden_layer_sizes": [(100, 100), (100, 50), (100, 50, 25)], "alpha": [0.0001, 0.001]},
-    "AdaBoost": {"estimator": [SVC(probability=True)], "n_estimators": [50, 100, 200], "learning_rate": [0.1, 1]}
+    "LogisticRegression": {"C": [0.1, 1, 10], "max_iter": [250], "solver": ["saga"], "n_jobs": [-1]},
+    "KNN": {"n_neighbors": [5, 7, 9], "p": [1, 2], "weights": ["uniform", "distance"], "n_jobs": [-1]},
+    "SVM": {"C": [1, 10, 100], "kernel": ["rbf"], "cache_size": [1800]},
+    "MLP": {"hidden_layer_sizes": [(200, 150, 100), (150, 100), (100, 100)], "alpha": [0.0001, 0.001]}
 }
 
 # Custom dataset for batch processing
@@ -79,7 +77,7 @@ def load_data(file_path):
     return texts, labels
 
 # Optimized embedding generation with GPU support and batching
-def generate_embeddings(model_name, texts, batch_size=128):
+def generate_embeddings(model_name, texts, batch_size=256):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
     
@@ -107,6 +105,12 @@ def generate_embeddings(model_name, texts, batch_size=128):
 
 # Train and evaluate classifiers
 def train_and_evaluate(embeddings_train, labels_train, embeddings_val, labels_val, embeddings_test, labels_test):
+    # Encode string labels as integers
+    label_encoder = LabelEncoder()
+    labels_train = label_encoder.fit_transform(labels_train)
+    labels_val = label_encoder.transform(labels_val)
+    labels_test = label_encoder.transform(labels_test)
+
     results = []
     
     for clf_name, clf_class in CLASSIFIERS.items():
@@ -114,14 +118,14 @@ def train_and_evaluate(embeddings_train, labels_train, embeddings_val, labels_va
         param_grid = PARAMETERS[clf_name]
         best_model = None
         best_score = -1
+        start_fine_tune = time.time()  # Start time for this classifier's training
         
         # Grid search on validation set
         for params in tqdm(ParameterGrid(param_grid), desc="Grid search"):
             clf = clf_class(**params)
             clf.fit(embeddings_train, labels_train)
             val_preds = clf.predict(embeddings_val)
-            val_probs = clf.predict_proba(embeddings_val) if hasattr(clf, "predict_proba") else None
-            score = roc_auc_score(labels_val, val_probs, multi_class="ovr", average="weighted") if val_probs is not None else accuracy_score(labels_val, val_preds)
+            score = accuracy_score(labels_val, val_preds)
             
             if score > best_score:
                 best_score = score
@@ -131,14 +135,19 @@ def train_and_evaluate(embeddings_train, labels_train, embeddings_val, labels_va
         test_preds = best_model.predict(embeddings_test)
         test_probs = best_model.predict_proba(embeddings_test) if hasattr(best_model, "predict_proba") else None
         
+        # Decode predictions back to original string labels
+        decoded_preds = label_encoder.inverse_transform(test_preds)
+        decoded_labels_test = label_encoder.inverse_transform(labels_test)
+        
         metrics = {
             "Classifier": clf_name,
             "BestParams": best_model.get_params(),
-            "Accuracy": accuracy_score(labels_test, test_preds),
-            "F1_Micro": f1_score(labels_test, test_preds, average="micro"),
-            "F1_Macro": f1_score(labels_test, test_preds, average="macro"),
-            "F1_Weighted": f1_score(labels_test, test_preds, average="weighted"),
-            "ROC_AUC": roc_auc_score(labels_test, test_probs, multi_class="ovr") if test_probs is not None else None
+            "Accuracy": accuracy_score(decoded_labels_test, decoded_preds),
+            "F1_Micro": f1_score(decoded_labels_test, decoded_preds, average="micro"),
+            "F1_Macro": f1_score(decoded_labels_test, decoded_preds, average="macro"),
+            "F1_Weighted": f1_score(decoded_labels_test, decoded_preds, average="weighted"),
+            "ROC_AUC": roc_auc_score(labels_test, test_probs, multi_class="ovr") if test_probs is not None else None,
+            "FineTuningTime": time.time() - start_fine_tune  # Fine-tuning time for this classifier
         }
         results.append(metrics)
     
@@ -173,14 +182,12 @@ def run_experiments(models=MODELS):
             test_embeddings, test_labels
         )
         
-        total_time = time.time() - start_time
-        
         # Add results and save intermediate results
         for result in model_results:
             result.update({
                 "EmbeddingModel": model_name,
                 "EmbeddingTime": embedding_time,
-                "TotalTime": total_time
+                "TotalTime": embedding_time + result["FineTuningTime"]  # Total time for this classifier
             })
             final_results.append(result)
             
