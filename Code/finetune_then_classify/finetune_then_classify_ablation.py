@@ -3,7 +3,7 @@ import json
 import torch
 import pandas as pd
 import numpy as np
-from sklearn.metrics import accuracy_score, f1_score, roc_auc_score
+from sklearn.metrics import accuracy_score, f1_score
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, Trainer, TrainingArguments
 from peft import LoraConfig, PeftModel, get_peft_model
 from torch.utils.data import Dataset
@@ -12,7 +12,6 @@ from tqdm import tqdm
 import os
 import gc
 
-# [Previous model and strategy definitions remain the same]
 MODELS = [
     "google-bert/bert-base-uncased",
     "google-bert/bert-large-uncased",
@@ -29,7 +28,10 @@ MODELS = [
     "Alibaba-NLP/gte-base-en-v1.5",
     "Alibaba-NLP/gte-large-en-v1.5",
     "xlnet/xlnet-base-cased",
-    "xlnet/xlnet-large-cased"
+    "xlnet/xlnet-large-cased",
+    "intfloat/e5-small-v2",
+    "intfloat/e5-base-v2",
+    "intfloat/e5-large-v2"
 ]
 
 FINE_TUNING_STRATEGIES = ["full_fine_tuning", "LoRA", "head_only"]
@@ -95,7 +97,8 @@ def fine_tune_and_evaluate(strategy, model_name, train_dataset, val_dataset, tes
     num_labels = len(set(train_labels))
     model = AutoModelForSequenceClassification.from_pretrained(
         model_name, 
-        num_labels=num_labels
+        num_labels=num_labels, 
+        trust_remote_code=True
     ).to(device)
 
     if strategy == "LoRA":
@@ -115,9 +118,9 @@ def fine_tune_and_evaluate(strategy, model_name, train_dataset, val_dataset, tes
         output_dir=f"outputs/{strategy}_{model_name}",
         eval_strategy="epoch",
         save_strategy="epoch",
-        per_device_train_batch_size=32,
-        per_device_eval_batch_size=64,
-        num_train_epochs=5,
+        per_device_train_batch_size=64,
+        per_device_eval_batch_size=256,
+        num_train_epochs=10,
         learning_rate=2e-5,
         save_total_limit=1,
         load_best_model_at_end=True,
@@ -138,7 +141,6 @@ def fine_tune_and_evaluate(strategy, model_name, train_dataset, val_dataset, tes
                 "F1_Micro": f1_score(p.label_ids, preds, average="micro"),
                 "F1_Macro": f1_score(p.label_ids, preds, average="macro"),
                 "F1_Weighted": f1_score(p.label_ids, preds, average="weighted"),
-                "ROC_AUC": roc_auc_score(p.label_ids, p.predictions, multi_class="ovr"),
             }
 
     trainer = Trainer(
@@ -175,7 +177,7 @@ def run_experiments():
     os.makedirs("logs", exist_ok=True)
     
     final_results = []
-    total_experiments = len(FINE_TUNING_STRATEGIES) * len(MODELS)
+    total_experiments = len(FINE_TUNING_STRATEGIES) * len(MODELS) * 19  # 19 percentages (5% to 95%)
     
     print("Loading and preprocessing datasets...")
     train_texts, train_labels = load_data(r"Data\Finetuning\train_data.json")
@@ -190,32 +192,39 @@ def run_experiments():
     experiment_count = 0
     for strategy in FINE_TUNING_STRATEGIES:
         for model_name in MODELS:
-            experiment_count += 1
-            print(f"\nExperiment {experiment_count}/{total_experiments}")
-            print(f"Processing {model_name} with {strategy}")
-            
-            tokenizer = AutoTokenizer.from_pretrained(model_name)
-            train_dataset = preprocess_data(tokenizer, train_texts, train_labels)
-            val_dataset = preprocess_data(tokenizer, val_texts, val_labels)
-            test_dataset = preprocess_data(tokenizer, test_texts, test_labels)
-            
-            try:
-                metrics = fine_tune_and_evaluate(
-                    strategy, model_name, train_dataset, val_dataset, test_dataset, train_labels
-                )
-                metrics.update({"Model": model_name, "Strategy": strategy})
-                final_results.append(metrics)
+            for percent in range(5, 100, 5):  # Loop over 5%-95%
+                experiment_count += 1
+                print(f"\nExperiment {experiment_count}/{total_experiments}")
+                print(f"Processing {model_name} with {strategy} using {percent}% of training data")
                 
-                pd.DataFrame(final_results).to_csv(
-                    "Results/fine_tuning_classification_results_intermediate.csv",
-                    index=False
-                )
-            except Exception as e:
-                print(f"Error processing {model_name} with {strategy}: {str(e)}")
-                continue
-            
-            torch.cuda.empty_cache()
-            gc.collect()
+                # Sample the percentage of training data
+                sample_size = int(len(train_texts) * (percent / 100))
+                sampled_indices = np.random.choice(len(train_texts), sample_size, replace=False)
+                sampled_train_texts = [train_texts[i] for i in sampled_indices]
+                sampled_train_labels = [train_labels[i] for i in sampled_indices]
+                
+                tokenizer = AutoTokenizer.from_pretrained(model_name)
+                train_dataset = preprocess_data(tokenizer, sampled_train_texts, sampled_train_labels)
+                val_dataset = preprocess_data(tokenizer, val_texts, val_labels)
+                test_dataset = preprocess_data(tokenizer, test_texts, test_labels)
+                
+                try:
+                    metrics = fine_tune_and_evaluate(
+                        strategy, model_name, train_dataset, val_dataset, test_dataset, sampled_train_labels
+                    )
+                    metrics.update({"Model": model_name, "Strategy": strategy, "PercentTrainingData": percent})
+                    final_results.append(metrics)
+                    
+                    pd.DataFrame(final_results).to_csv(
+                        "Results/fine_tuning_classification_results_ablation_intermediate.csv",
+                        index=False
+                    )
+                except Exception as e:
+                    print(f"Error processing {model_name} with {strategy}: {str(e)}")
+                    continue
+                
+                torch.cuda.empty_cache()
+                gc.collect()
     
     return final_results
 
@@ -223,4 +232,4 @@ if __name__ == "__main__":
     final_results = run_experiments()
     results_df = pd.DataFrame(final_results)
     results_df.to_csv("Results/fine_tuning_classification_results.csv", index=False)
-    print("\nExperiment complete. Results saved to 'Results/fine_tuning_classification_results.csv'")
+    print("\nExperiment complete. Results saved to 'Results/fine_tuning_classification_ablation_results.csv'")
