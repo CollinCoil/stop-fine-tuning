@@ -3,14 +3,15 @@ import json
 import torch
 import pandas as pd
 import numpy as np
+from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, f1_score
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, Trainer, TrainingArguments
-from peft import LoraConfig, PeftModel, get_peft_model
 from torch.utils.data import Dataset
 from sklearn.preprocessing import LabelEncoder
 from tqdm import tqdm
 import os
 import gc
+from peft import get_peft_model, LoraConfig, TaskType, IA3Config
 
 MODELS = [
     "google-bert/bert-base-uncased",
@@ -34,7 +35,7 @@ MODELS = [
     "intfloat/e5-large-v2"
 ]
 
-FINE_TUNING_STRATEGIES = ["full_fine_tuning", "LoRA", "head_only"]
+FINE_TUNING_STRATEGIES = ["lora", "ia3", "full_fine_tuning", "head_only"]  
 
 class TextDataset(Dataset):
     def __init__(self, encodings, labels):
@@ -86,33 +87,50 @@ def preprocess_data(tokenizer, texts, labels, max_length=256, batch_size=1000):
     
     return TextDataset(all_encodings, labels)
 
+def compute_metrics(eval_pred):
+    logits, labels = eval_pred
+    preds = np.argmax(logits, axis=1)
+    return {
+        "Accuracy": accuracy_score(labels, preds),
+        "F1_Micro": f1_score(labels, preds, average="micro"),
+        "F1_Macro": f1_score(labels, preds, average="macro"),
+        "F1_Weighted": f1_score(labels, preds, average="weighted"),
+    }
+
 def fine_tune_and_evaluate(strategy, model_name, train_dataset, val_dataset, test_dataset, train_labels):
     start_time = time.time()
     print(f"\nFine-tuning {model_name} with {strategy}")
-    
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
-    
+
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     num_labels = len(set(train_labels))
     model = AutoModelForSequenceClassification.from_pretrained(
-        model_name, 
-        num_labels=num_labels, 
+        model_name,
+        num_labels=num_labels,
         trust_remote_code=True
     ).to(device)
 
-    if strategy == "LoRA":
-        lora_config = LoraConfig(
-            r=8,
-            lora_alpha=32,
-            lora_dropout=0.1,
-            bias="none",
-            target_modules=["query", "value"]
-        )
-        model = get_peft_model(model, lora_config)
-    elif strategy == "head_only":
+    if strategy == "head_only":
         for param in model.base_model.parameters():
             param.requires_grad = False
+    elif strategy == "lora":
+        peft_config = LoraConfig(
+            task_type=TaskType.SEQ_CLS,
+            inference_mode=False,
+            r=32,
+            lora_alpha=64,
+            lora_dropout=0.05
+        )
+        model = get_peft_model(model, peft_config)
+        model.print_trainable_parameters()
+    elif strategy == "ia3":
+        peft_config = IA3Config(
+            task_type=TaskType.SEQ_CLS
+        )
+        model = get_peft_model(model, peft_config)
+        model.print_trainable_parameters()
 
     training_args = TrainingArguments(
         output_dir=f"outputs/{strategy}_{model_name}",
@@ -124,7 +142,7 @@ def fine_tune_and_evaluate(strategy, model_name, train_dataset, val_dataset, tes
         learning_rate=2e-5,
         save_total_limit=1,
         load_best_model_at_end=True,
-        metric_for_best_model="eval_loss",
+        metric_for_best_model="Accuracy",
         logging_dir=f"logs/{strategy}_{model_name}",
         logging_steps=10,
         seed=2024,
@@ -132,16 +150,6 @@ def fine_tune_and_evaluate(strategy, model_name, train_dataset, val_dataset, tes
         warmup_steps=500,
         weight_decay=0.01,
     )
-
-    def compute_metrics(p):
-        with torch.no_grad():
-            preds = np.argmax(p.predictions, axis=1)
-            return {
-                "Accuracy": accuracy_score(p.label_ids, preds),
-                "F1_Micro": f1_score(p.label_ids, preds, average="micro"),
-                "F1_Macro": f1_score(p.label_ids, preds, average="macro"),
-                "F1_Weighted": f1_score(p.label_ids, preds, average="weighted"),
-            }
 
     trainer = Trainer(
         model=model,
@@ -155,7 +163,7 @@ def fine_tune_and_evaluate(strategy, model_name, train_dataset, val_dataset, tes
     print("Starting training...")
     trainer.train()
     training_time = time.time() - start_time
-    
+
     print("Evaluating model...")
     start_eval_time = time.time()
     metrics = trainer.evaluate(test_dataset)
@@ -198,10 +206,9 @@ def run_experiments():
                 print(f"Processing {model_name} with {strategy} using {percent}% of training data")
                 
                 # Sample the percentage of training data
-                sample_size = int(len(train_texts) * (percent / 100))
-                sampled_indices = np.random.choice(len(train_texts), sample_size, replace=False)
-                sampled_train_texts = [train_texts[i] for i in sampled_indices]
-                sampled_train_labels = [train_labels[i] for i in sampled_indices]
+                sampled_train_texts, _, sampled_train_labels, _ = train_test_split(
+                train_texts, train_labels, train_size=percent / 100.0, stratify=train_labels, random_state=2025
+                )
                 
                 tokenizer = AutoTokenizer.from_pretrained(model_name)
                 train_dataset = preprocess_data(tokenizer, sampled_train_texts, sampled_train_labels)
