@@ -38,18 +38,31 @@ MODELS = [
 FINE_TUNING_STRATEGIES = ["lora", "ia3", "full_fine_tuning", "head_only"]  
 
 class TextDataset(Dataset):
-    def __init__(self, encodings, labels):
-        self.encodings = encodings
+    def __init__(self, texts, labels, tokenizer, max_length=256):
+        self.texts = texts
         self.labels = labels
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.tokenizer = tokenizer
+        self.max_length = max_length
 
     def __len__(self):
         return len(self.labels)
 
     def __getitem__(self, idx):
-        item = {key: torch.tensor(val[idx], device=self.device) 
-                for key, val in self.encodings.items()}
-        item["labels"] = torch.tensor(self.labels[idx], device=self.device)
+        text = self.texts[idx]
+        label = self.labels[idx]
+
+        encoding = self.tokenizer(
+            text,
+            truncation=True,
+            padding='max_length',
+            max_length=self.max_length,
+            return_tensors='pt'
+        )
+
+        # Remove the batch dimension added by tokenizer
+        item = {key: val.squeeze(0) for key, val in encoding.items()}
+        item['labels'] = torch.tensor(label)
+        
         return item
 
 def load_data(file_path):
@@ -59,33 +72,6 @@ def load_data(file_path):
     texts = [item["text"] for item in data]
     labels = [item["document_label"] for item in data]
     return texts, labels
-
-def preprocess_data(tokenizer, texts, labels, max_length=256, batch_size=1000):
-    total_batches = len(texts) // batch_size + (1 if len(texts) % batch_size != 0 else 0)
-    all_encodings = {}
-    
-    for i in tqdm(range(total_batches), desc="Preprocessing data"):
-        start_idx = i * batch_size
-        end_idx = min((i + 1) * batch_size, len(texts))
-        batch_texts = texts[start_idx:end_idx]
-        
-        batch_encodings = tokenizer(
-            batch_texts,
-            truncation=True,
-            padding=True,
-            max_length=max_length,
-            return_tensors="pt"
-        )
-        
-        if not all_encodings:
-            all_encodings = {k: v.cpu().numpy() for k, v in batch_encodings.items()}
-        else:
-            for k, v in batch_encodings.items():
-                all_encodings[k] = np.vstack([all_encodings[k], v.cpu().numpy()])
-        
-        torch.cuda.empty_cache()
-    
-    return TextDataset(all_encodings, labels)
 
 def compute_metrics(eval_pred):
     logits, labels = eval_pred
@@ -97,7 +83,8 @@ def compute_metrics(eval_pred):
         "F1_Weighted": f1_score(labels, preds, average="weighted"),
     }
 
-def fine_tune_and_evaluate(strategy, model_name, train_dataset, val_dataset, test_dataset, train_labels):
+def fine_tune_and_evaluate(strategy, model_name, train_texts, train_labels, val_texts, val_labels, 
+                          test_texts, test_labels):
     start_time = time.time()
     print(f"\nFine-tuning {model_name} with {strategy}")
 
@@ -106,6 +93,12 @@ def fine_tune_and_evaluate(strategy, model_name, train_dataset, val_dataset, tes
 
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     num_labels = len(set(train_labels))
+    
+    # Create datasets with on-the-fly tokenization
+    train_dataset = TextDataset(train_texts, train_labels, tokenizer)
+    val_dataset = TextDataset(val_texts, val_labels, tokenizer)
+    test_dataset = TextDataset(test_texts, test_labels, tokenizer)
+
     model = AutoModelForSequenceClassification.from_pretrained(
         model_name,
         num_labels=num_labels,
@@ -187,7 +180,7 @@ def run_experiments():
     final_results = []
     total_experiments = len(FINE_TUNING_STRATEGIES) * len(MODELS) * 19  # 19 percentages (5% to 95%)
     
-    print("Loading and preprocessing datasets...")
+    print("Loading datasets...")
     train_texts, train_labels = load_data(r"Data\Finetuning\train_data.json")
     val_texts, val_labels = load_data(r"Data\Validation\val_data.json")
     test_texts, test_labels = load_data(r"Data\Evaluation\test_data.json")
@@ -200,26 +193,29 @@ def run_experiments():
     experiment_count = 0
     for strategy in FINE_TUNING_STRATEGIES:
         for model_name in MODELS:
-            for percent in range(5, 100, 5):  # Loop over 5%-95%
+            for percent in range(5, 100, 5):
                 experiment_count += 1
                 print(f"\nExperiment {experiment_count}/{total_experiments}")
                 print(f"Processing {model_name} with {strategy} using {percent}% of training data")
                 
                 # Sample the percentage of training data
                 sampled_train_texts, _, sampled_train_labels, _ = train_test_split(
-                train_texts, train_labels, train_size=percent / 100.0, stratify=train_labels, random_state=2025
+                    train_texts, train_labels, train_size=percent / 100.0, 
+                    stratify=train_labels, random_state=2025
                 )
-                
-                tokenizer = AutoTokenizer.from_pretrained(model_name)
-                train_dataset = preprocess_data(tokenizer, sampled_train_texts, sampled_train_labels)
-                val_dataset = preprocess_data(tokenizer, val_texts, val_labels)
-                test_dataset = preprocess_data(tokenizer, test_texts, test_labels)
                 
                 try:
                     metrics = fine_tune_and_evaluate(
-                        strategy, model_name, train_dataset, val_dataset, test_dataset, sampled_train_labels
+                        strategy, model_name, 
+                        sampled_train_texts, sampled_train_labels,
+                        val_texts, val_labels,
+                        test_texts, test_labels
                     )
-                    metrics.update({"Model": model_name, "Strategy": strategy, "PercentTrainingData": percent})
+                    metrics.update({
+                        "Model": model_name, 
+                        "Strategy": strategy, 
+                        "PercentTrainingData": percent
+                    })
                     final_results.append(metrics)
                     
                     pd.DataFrame(final_results).to_csv(
