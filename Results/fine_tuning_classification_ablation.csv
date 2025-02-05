@@ -1,4 +1,4 @@
-eval_loss,eval_Accuracy,eval_F1_Micro,eval_F1_Macro,eval_F1_Weighted,eval_runtime,eval_samples_per_second,eval_steps_per_second,epoch,TrainingTime,EvaluationTime,Model,Strategy,PercentTrainingData
+eval_loss,eval_Accuracy,eval_F1_Micro,eval_F1_Macro,eval_F1_Weighted,eval_runtime,eval_samples_per_second,eval_steps_per_second,epoch,TrainingTime,EvaluationTime,Model,Strategy,TrainingDataPercent
 1.2362641096115112,0.636622675464907,0.636622675464907,0.12857868199851946,0.550504253807014,28.6622,465.283,1.849,10.0,522.5532312393188,28.665352821350098,google-bert/bert-base-uncased,lora,5
 0.695475697517395,0.7431013797240552,0.7431013797240552,0.23943297941403327,0.6931065817798434,28.0592,475.281,1.889,9.886227544910179,948.6133923530579,28.062376737594604,google-bert/bert-base-uncased,lora,10
 0.5893169045448303,0.7661967606478705,0.7661967606478705,0.2584925147335272,0.7070063585943772,28.2865,471.462,1.874,9.92430278884462,979.8221778869629,28.289867162704468,google-bert/bert-base-uncased,lora,15
