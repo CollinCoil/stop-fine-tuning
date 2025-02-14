@@ -6,7 +6,7 @@ import os
 
 def plot_metric_comparison(embed_results, finetune_results, metric, output_path):
     fig, ax = plt.subplots(figsize=(12, 8))
-
+    
     strategy_names = {
         "lora": "LoRA",
         "ia3": "IA3", 
@@ -62,11 +62,12 @@ def plot_metric_comparison(embed_results, finetune_results, metric, output_path)
                                 ncol=len(strategies))
     
     plt.subplots_adjust(bottom=0.25)
-    plt.savefig(output_path, dpi=1500, bbox_inches='tight')
+    plt.savefig(output_path, dpi=600, bbox_inches='tight')
     plt.close()
 
 # Main execution
 sns.set_style("whitegrid")
+
 
 metrics = ['Accuracy', 'F1_Micro', 'F1_Macro', 'F1_Weighted']
 os.makedirs('Results/images', exist_ok=True)
@@ -74,14 +75,12 @@ os.makedirs('Results/images', exist_ok=True)
 # for metric in metrics:
 #     embed_results = pd.read_csv('Results/embedding_classification_results.csv')
 #     finetune_results = pd.read_csv('Results/fine_tuning_classification_results.csv')
-
 #     plot_metric_comparison(
 #         embed_results, 
 #         finetune_results, 
 #         metric,
 #         f'Results/images/classification_{metric.lower()}_comparison.png'
 #     )
-
 
 
 #####################################################################################################################
@@ -112,9 +111,8 @@ def plot_ablation_study(embed_results, finetune_results, metric, output_path):
     classifiers = embed_results['Classifier'].unique()
     strategies = finetune_results['Strategy'].unique()
     all_methods = list(classifiers) + list(strategies)
-    n_colors = len(all_methods)
-    colors = plt.cm.plasma(np.linspace(0, 0.9, n_colors))
-    color_dict = dict(zip(all_methods, colors))
+    n_colors = plt.cm.plasma(np.linspace(0, 0.9, len(all_methods)))
+    color_dict = dict(zip(all_methods, n_colors))
     
     for idx, model in enumerate(base_models):
         ax = axes[idx]
@@ -127,13 +125,14 @@ def plot_ablation_study(embed_results, finetune_results, metric, output_path):
             ax.plot(data['TrainingDataPercent'], data[metric], 
                    color=color_dict[classifier], marker='o', markersize=8)
         
-        # Plot fine-tuning results
+        # Plot fine-tuning results with dashed lines
         for strategy in strategies:
             mask = (finetune_results['Strategy'] == strategy) & \
                   (finetune_results['Model'] == model)
             data = finetune_results[mask].sort_values('TrainingDataPercent')
             ax.plot(data['TrainingDataPercent'], data[f'eval_{metric}'],
-                   color=color_dict[strategy], marker='s', markersize=8)
+                   color=color_dict[strategy], marker='s', markersize=8, 
+                   linestyle='--')  # Dashed line for fine-tuning
         
         ax.grid(True, linestyle='--', alpha=0.7)
         ax.set_xlabel('Training Data %')
@@ -154,7 +153,7 @@ def plot_ablation_study(embed_results, finetune_results, metric, output_path):
                              ncol=len(classifiers))
     
     finetune_legend = fig.legend(handles=[plt.Line2D([], [], color=color_dict[s], marker='s',
-                                                   linestyle='-', label=s, markersize=8)
+                                                   linestyle='--', label=s, markersize=8)
                                         for s in strategies],
                                 title='Fine-Tune then Classify',
                                 bbox_to_anchor=(0.5, -0.02),
@@ -164,7 +163,7 @@ def plot_ablation_study(embed_results, finetune_results, metric, output_path):
     plt.suptitle(f'{metric.replace("_", " ")} vs Training Data Percentage', 
                  fontsize=16, y=1.02)
     plt.tight_layout()
-    plt.savefig(output_path, dpi=1500, bbox_inches='tight')
+    plt.savefig(output_path, dpi=600, bbox_inches='tight')
     plt.close()
 
 # Main execution
