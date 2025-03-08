@@ -193,7 +193,7 @@ def run_experiments():
     experiment_count = 0
     for strategy in FINE_TUNING_STRATEGIES:
         for model_name in MODELS:
-            for percent in range(5, 100, 5):
+            for percent in range(5, 105, 5):
                 experiment_count += 1
                 print(f"\nExperiment {experiment_count}/{total_experiments}")
                 print(f"Processing {model_name} with {strategy} using {percent}% of training data")

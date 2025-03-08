@@ -72,19 +72,18 @@ sns.set_style("whitegrid")
 metrics = ['Accuracy', 'F1_Micro', 'F1_Macro', 'F1_Weighted']
 os.makedirs('Results/images', exist_ok=True)
 
-# for metric in metrics:
-#     embed_results = pd.read_csv('Results/embedding_classification_results.csv')
-#     finetune_results = pd.read_csv('Results/fine_tuning_classification_results.csv')
-#     plot_metric_comparison(
-#         embed_results, 
-#         finetune_results, 
-#         metric,
-#         f'Results/images/classification_{metric.lower()}_comparison.png'
-#     )
+for metric in metrics:
+    embed_results = pd.read_csv('Results/embedding_classification_results.csv')
+    finetune_results = pd.read_csv('Results/fine_tuning_classification_results.csv')
+    plot_metric_comparison(
+        embed_results, 
+        finetune_results, 
+        metric,
+        f'Results/images/classification_{metric.lower()}_comparison.png'
+    )
 
 
 #####################################################################################################################
-# TODO: Ensure that this code actually works for creating the visualizations
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -148,7 +147,7 @@ def plot_ablation_study(embed_results, finetune_results, metric, output_path):
                                                 linestyle='-', label=c, markersize=8)
                                      for c in classifiers],
                              title='Embed then Classify',
-                             bbox_to_anchor=(0.5, 0.02),
+                             bbox_to_anchor=(0.5, -0.05),
                              loc='lower center',
                              ncol=len(classifiers))
     
@@ -156,7 +155,7 @@ def plot_ablation_study(embed_results, finetune_results, metric, output_path):
                                                    linestyle='--', label=s, markersize=8)
                                         for s in strategies],
                                 title='Fine-Tune then Classify',
-                                bbox_to_anchor=(0.5, -0.02),
+                                bbox_to_anchor=(0.5, -0.1),
                                 loc='lower center',
                                 ncol=len(strategies))
     
