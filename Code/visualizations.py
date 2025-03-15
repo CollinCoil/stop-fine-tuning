@@ -62,7 +62,7 @@ def plot_metric_comparison(embed_results, finetune_results, metric, output_path)
                                 ncol=len(strategies))
     
     plt.subplots_adjust(bottom=0.25)
-    plt.savefig(output_path, dpi=600, bbox_inches='tight')
+    plt.savefig(output_path, dpi=300, bbox_inches='tight')
     plt.close()
 
 # Main execution
@@ -162,7 +162,7 @@ def plot_ablation_study(embed_results, finetune_results, metric, output_path):
     plt.suptitle(f'{metric.replace("_", " ")} vs Training Data Percentage', 
                  fontsize=16, y=1.02)
     plt.tight_layout()
-    plt.savefig(output_path, dpi=600, bbox_inches='tight')
+    plt.savefig(output_path, dpi=300, bbox_inches='tight')
     plt.close()
 
 # Main execution
