@@ -210,7 +210,7 @@ def run_experiments(models=MODELS):
 
         # Save intermediate results after each model
         pd.DataFrame(final_results).to_csv(
-            "Results/embedding_classification_results_intermediate.csv",
+            "Results/embedding_classification_results_intermediate_liar2.csv",
             index=False
         )
 
@@ -222,5 +222,4 @@ if __name__ == "__main__":
 
     # Save final results
     results_df = pd.DataFrame(final_results)
-    results_df.to_csv("Results/embedding_classification_results.csv", index=False)
-    print("\nExperiment complete. Results saved to 'Results/embedding_classification_results.csv'")
+    results_df.to_csv("Results/embedding_classification_results_liar2.csv", index=False)

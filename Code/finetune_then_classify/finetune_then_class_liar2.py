@@ -218,7 +218,7 @@ def run_experiments():
                 final_results.append(metrics)
 
                 pd.DataFrame(final_results).to_csv(
-                    "Results/fine_tuning_classification_results_intermediate.csv",
+                    "Results/fine_tuning_classification_results_intermediate_liar2.csv",
                     index=False
                 )
             except Exception as e:
@@ -233,5 +233,4 @@ def run_experiments():
 if __name__ == "__main__":
     final_results = run_experiments()
     results_df = pd.DataFrame(final_results)
-    results_df.to_csv("Results/fine_tuning_classification_results.csv", index=False)
-    print("\nExperiment complete. Results saved to 'Results/fine_tuning_classification_results.csv'")
+    results_df.to_csv("Results/fine_tuning_classification_results_liar2.csv", index=False)

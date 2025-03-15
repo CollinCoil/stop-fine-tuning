@@ -158,8 +158,7 @@ def run_experiments():
             continue
 
     df = pd.DataFrame(results)
-    df.to_csv("Results/zero_shot_classification_results.csv", index=False)
-    print("\nResults saved to 'Results/zero_shot_classification_results.csv'")
+    df.to_csv("Results/zero_shot_classification_results_liar2.csv", index=False)
 
 if __name__ == "__main__":
     run_experiments()
