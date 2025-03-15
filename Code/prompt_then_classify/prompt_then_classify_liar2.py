@@ -22,14 +22,24 @@ DECODER_MODELS = [
 splits = {'train': 'train.csv', 'validation': 'valid.csv', 'test': 'test.csv'}
 liar_df_test = pd.read_csv("hf://datasets/chengxuphd/liar2/" + splits["test"])
 
+# Mapping from integer labels to textual labels
+label_mapping = {
+    0: "Pants on fire",
+    1: "False",
+    2: "Barely true",
+    3: "Half true",
+    4: "Mostly true",
+    5: "True"
+}
+
 def load_data(data):
     texts = data["statement"]
-    labels = data["label"]
+    labels = data["label"].map(label_mapping)  # Map integer labels to textual labels
     return texts, labels
 
 def create_prompt(text, label_options):
     return f"""
-    You are a social scientist trained to classify political texts into categories based on the type of document. These texts are extracted from documents created by the US legislative, executive, and judicial branches.
+    You are a social scientist trained to classify sentences into categories based on the level of misinformation. These texts are from a variety of speakers and political documents. 
     Below is a text. Your task is to classify it into one of the following categories: {', '.join(label_options)}.
 
     Text:
@@ -146,7 +156,7 @@ def evaluate_model(model_name, test_texts, test_labels, label_options):
 
 def run_experiments():
     test_texts, test_labels = load_data(liar_df_test)
-    label_options = list(set(test_labels))
+    label_options = list(label_mapping.values())  # Use textual labels
 
     results = []
     for model_name in DECODER_MODELS:
