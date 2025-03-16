@@ -71,7 +71,7 @@ def preprocess_data(tokenizer, texts, labels, max_length=256, batch_size=1000):
         batch_encodings = tokenizer(
             batch_texts,
             truncation=True,
-            padding=True,
+            padding="max_length",
             max_length=max_length,
             return_tensors="pt"
         )

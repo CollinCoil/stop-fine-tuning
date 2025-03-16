@@ -71,7 +71,7 @@ def load_data(data):
     labels = data["label"].map(label_mapping).tolist()  # Convert labels to list
     return texts, labels
 
-def preprocess_data(tokenizer, texts, labels, max_length=256, batch_size=1000):
+def preprocess_data(tokenizer, texts, labels, max_length=128, batch_size=1000):
     total_batches = len(texts) // batch_size + (1 if len(texts) % batch_size != 0 else 0)
     all_encodings = {}
 
@@ -83,7 +83,7 @@ def preprocess_data(tokenizer, texts, labels, max_length=256, batch_size=1000):
         batch_encodings = tokenizer(
             batch_texts,
             truncation=True,
-            padding=True,
+            padding="max_length",
             max_length=max_length,
             return_tensors="pt"
         )
