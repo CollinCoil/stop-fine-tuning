@@ -85,9 +85,19 @@ class TextDataset(Dataset):
             return_tensors="pt"
         )
 
+# Mapping from integer labels to textual labels
+label_mapping = {
+    0: "Pants on fire",
+    1: "False",
+    2: "Barely true",
+    3: "Half true",
+    4: "Mostly true",
+    5: "True"
+}
+
 def load_data(data):
     texts = data["statement"]
-    labels = data["label"]
+    labels = data["label"].map(label_mapping)  # Map integers to strings
     return texts, labels
 
 def average_pool(last_hidden_states: torch.Tensor, attention_mask: torch.Tensor) -> torch.Tensor:

@@ -75,7 +75,7 @@ def generate_response(model, tokenizer, prompt, label_options):
     generation_config = GenerationConfig(
         max_new_tokens=10,
         min_new_tokens=1,
-        do_sample=True,
+        do_sample=False,
         num_beams=1,  # Use greedy decoding since we're constraining tokens
         pad_token_id=tokenizer.pad_token_id,
         eos_token_id=tokenizer.eos_token_id

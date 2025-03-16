@@ -56,9 +56,19 @@ liar_df_train = pd.read_csv("hf://datasets/chengxuphd/liar2/" + splits["train"])
 liar_df_test = pd.read_csv("hf://datasets/chengxuphd/liar2/" + splits["test"])
 liar_df_valid = pd.read_csv("hf://datasets/chengxuphd/liar2/" + splits["validation"])
 
+# Mapping from integer labels to textual labels
+label_mapping = {
+    0: "Pants on fire",
+    1: "False",
+    2: "Barely true",
+    3: "Half true",
+    4: "Mostly true",
+    5: "True"
+}
+
 def load_data(data):
-    texts = data["statement"]
-    labels = data["label"]
+    texts = data["statement"].astype(str).tolist()  # Ensure all values are strings and convert to list
+    labels = data["label"].map(label_mapping).tolist()  # Convert labels to list
     return texts, labels
 
 def preprocess_data(tokenizer, texts, labels, max_length=256, batch_size=1000):
