@@ -1,8 +1,7 @@
 import time
-import json
-import torch
 import pandas as pd
 import numpy as np
+import torch
 from sklearn.metrics import accuracy_score, f1_score
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, Trainer, TrainingArguments
 from torch.utils.data import Dataset
@@ -13,25 +12,25 @@ import gc
 from peft import get_peft_model, LoraConfig, TaskType, IA3Config
 
 MODELS = [
-    "google-bert/bert-base-uncased",
-    "google-bert/bert-large-uncased",
-    "FacebookAI/roberta-base",
-    "FacebookAI/roberta-large",
-    "answerdotai/ModernBERT-base",
-    "answerdotai/ModernBERT-large",
-    "ibm-granite/granite-embedding-30m-english",
-    "ibm-granite/granite-embedding-125m-english",
-    "microsoft/deberta-v3-xsmall",
-    "microsoft/deberta-v3-small",
-    "microsoft/deberta-v3-base",
-    "microsoft/deberta-v3-large",
-    "Alibaba-NLP/gte-base-en-v1.5",
-    "Alibaba-NLP/gte-large-en-v1.5",
-    "xlnet/xlnet-base-cased",
-    "xlnet/xlnet-large-cased",
-    "intfloat/e5-small-v2",
-    "intfloat/e5-base-v2",
-    "intfloat/e5-large-v2"
+    "bert-base-uncased",
+    "bert-large-uncased",
+    "roberta-base",
+    "roberta-large",
+    "ModernBERT-base",
+    "ModernBERT-large",
+    "granite-embedding-30m-english",
+    "granite-embedding-125m-english",
+    "deberta-v3-xsmall",
+    "deberta-v3-small",
+    "deberta-v3-base",
+    "deberta-v3-large",
+    "gte-base-en-v1.5",
+    "gte-large-en-v1.5",
+    "xlnet-base-cased",
+    "xlnet-large-cased",
+    "e5-small-v2",
+    "e5-base-v2",
+    "e5-large-v2"
 ]
 
 FINE_TUNING_STRATEGIES = ["lora", "ia3", "full_fine_tuning", "head_only"]
@@ -51,24 +50,14 @@ class TextDataset(Dataset):
         item["labels"] = torch.tensor(self.labels[idx], device=self.device)
         return item
 
-splits = {'train': 'train.csv', 'validation': 'valid.csv', 'test': 'test.csv'}
-liar_df_train = pd.read_csv("hf://datasets/chengxuphd/liar2/" + splits["train"])
-liar_df_test = pd.read_csv("hf://datasets/chengxuphd/liar2/" + splits["test"])
-liar_df_valid = pd.read_csv("hf://datasets/chengxuphd/liar2/" + splits["validation"])
-
 # Mapping from integer labels to textual labels
-label_mapping = {
-    0: "Pants on fire",
-    1: "False",
-    2: "Barely true",
-    3: "Half true",
-    4: "Mostly true",
-    5: "True"
-}
+LABEL_MAPPING = {0: "Hate speech", 1: "Offensive language", 2: "Neither"}
 
-def load_data(data):
-    texts = data["statement"].astype(str).tolist()  # Ensure all values are strings and convert to list
-    labels = data["label"].map(label_mapping).tolist()  # Convert labels to list
+def load_data(file_url):
+    print(f"Loading data from {file_url}")
+    data = pd.read_csv(file_url)
+    texts = data["tweet"].astype(str).tolist()  # Ensure all values are strings and convert to list
+    labels = data["class"].map(LABEL_MAPPING).tolist()  # Convert labels to list
     return texts, labels
 
 def preprocess_data(tokenizer, texts, labels, max_length=128, batch_size=1000):
@@ -199,9 +188,9 @@ def run_experiments():
     total_experiments = len(FINE_TUNING_STRATEGIES) * len(MODELS)
 
     print("Loading and preprocessing datasets...")
-    train_texts, train_labels = load_data(liar_df_train)
-    val_texts, val_labels = load_data(liar_df_valid)
-    test_texts, test_labels = load_data(liar_df_test)
+    train_texts, train_labels = load_data("https://raw.githubusercontent.com/t-davidson/hate-speech-and-offensive-language/refs/heads/master/data/labeled_data.csv")
+    val_texts, val_labels = load_data("https://raw.githubusercontent.com/t-davidson/hate-speech-and-offensive-language/refs/heads/master/data/labeled_data.csv")
+    test_texts, test_labels = load_data("https://raw.githubusercontent.com/t-davidson/hate-speech-and-offensive-language/refs/heads/master/data/labeled_data.csv")
 
     label_encoder = LabelEncoder()
     train_labels = label_encoder.fit_transform(train_labels)
@@ -228,7 +217,7 @@ def run_experiments():
                 final_results.append(metrics)
 
                 pd.DataFrame(final_results).to_csv(
-                    "Results/fine_tuning_classification_results_intermediate_liar2.csv",
+                    "Results/fine_tuning_classification_results_intermediate_hate.csv",
                     index=False
                 )
             except Exception as e:
@@ -242,5 +231,4 @@ def run_experiments():
 
 if __name__ == "__main__":
     final_results = run_experiments()
-    results_df = pd.DataFrame(final_results)
-    results_df.to_csv("Results/fine_tuning_classification_results_liar2.csv", index=False)
+    

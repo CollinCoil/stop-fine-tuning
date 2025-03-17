@@ -1,5 +1,4 @@
 import torch
-import json
 import pandas as pd
 import numpy as np
 import time
@@ -11,49 +10,32 @@ import gc
 import os
 from huggingface_hub import login
 
+# Login using your Hugging Face token
 login("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")
 
+# Define models to test
 DECODER_MODELS = [
     "meta-llama/Llama-3.1-8B",
     "mistralai/Mistral-7B-v0.3",
     "google/gemma-7b"
 ]
 
-splits = {'train': 'train.csv', 'validation': 'valid.csv', 'test': 'test.csv'}
-liar_df_test = pd.read_csv("hf://datasets/chengxuphd/liar2/" + splits["test"])
+# Mapping for labels
+LABEL_MAPPING = {0: "Hate speech", 1: "Offensive language", 2: "Neither"}
 
-# Mapping from integer labels to textual labels
-label_mapping = {
-    0: "Pants on fire",
-    1: "False",
-    2: "Barely true",
-    3: "Half true",
-    4: "Mostly true",
-    5: "True"
-}
-
-def load_data(data):
-    texts = data["statement"]
-    labels = data["label"].map(label_mapping)  # Map integer labels to textual labels
+def load_data(file_url):
+    print(f"Loading data from {file_url}")
+    data = pd.read_csv(file_url)
+    texts = data["tweet"].tolist()
+    labels = data["class"].map(LABEL_MAPPING).tolist()
     return texts, labels
-
-# Swap this load data if using justification as part of the prediction
-# def load_data(data):
-#     texts = data["statement"].astype(str).tolist()  # Ensure all values are strings and convert to list
-#     justification = data["justification"].astype(str).tolist()  # Ensure all values are strings and convert to list
-#     labels = data["label"].map(label_mapping).tolist()  # Convert labels to list
-
-#     # Concatenate corresponding elements of texts and justification with a space in between
-#     texts = [f"{t} {j}" for t, j in zip(texts, justification)]
-    
-#     return texts, labels
 
 def create_prompt(text, label_options):
     return f"""
-    You are a social scientist trained to classify sentences into categories based on the level of misinformation. These texts are from a variety of speakers and political documents. 
-    Below is a text. Your task is to classify it into one of the following categories: {', '.join(label_options)}.
+    You are a social scientist trained to classify tweets into categories based on their content.
+    Below is a tweet. Your task is to classify it into one of the following categories: {', '.join(label_options)}.
 
-    Text:
+    Tweet:
     "{text}"
     Output only the category name. The category is:"""
 
@@ -166,8 +148,8 @@ def evaluate_model(model_name, test_texts, test_labels, label_options):
     }
 
 def run_experiments():
-    test_texts, test_labels = load_data(liar_df_test)
-    label_options = list(label_mapping.values())  # Use textual labels
+    test_texts, test_labels = load_data("https://raw.githubusercontent.com/t-davidson/hate-speech-and-offensive-language/refs/heads/master/data/labeled_data.csv")
+    label_options = list(LABEL_MAPPING.values())
 
     results = []
     for model_name in DECODER_MODELS:
@@ -179,7 +161,7 @@ def run_experiments():
             continue
 
     df = pd.DataFrame(results)
-    df.to_csv("Results/zero_shot_classification_results_liar2.csv", index=False)
+    df.to_csv("Results/zero_shot_classification_results_hate.csv", index=False)
 
 if __name__ == "__main__":
     run_experiments()

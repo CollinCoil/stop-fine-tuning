@@ -100,6 +100,18 @@ def load_data(data):
     labels = data["label"].map(label_mapping)  # Map integers to strings
     return texts, labels
 
+
+# Swap this load data if using justification as part of the prediction
+# def load_data(data):
+#     texts = data["statement"].astype(str).tolist()  # Ensure all values are strings and convert to list
+#     justification = data["justification"].astype(str).tolist()  # Ensure all values are strings and convert to list
+#     labels = data["label"].map(label_mapping).tolist()  # Convert labels to list
+
+#     # Concatenate corresponding elements of texts and justification with a space in between
+#     texts = [f"{t} {j}" for t, j in zip(texts, justification)]
+    
+#     return texts, labels
+
 def average_pool(last_hidden_states: torch.Tensor, attention_mask: torch.Tensor) -> torch.Tensor:
     # Mask padding tokens in the last hidden states
     last_hidden = last_hidden_states.masked_fill(~attention_mask[..., None].bool(), 0.0)
