@@ -12,25 +12,25 @@ import gc
 from peft import get_peft_model, LoraConfig, TaskType, IA3Config
 
 MODELS = [
-    "bert-base-uncased",
-    "bert-large-uncased",
-    "roberta-base",
-    "roberta-large",
-    "ModernBERT-base",
-    "ModernBERT-large",
-    "granite-embedding-30m-english",
-    "granite-embedding-125m-english",
-    "deberta-v3-xsmall",
-    "deberta-v3-small",
-    "deberta-v3-base",
-    "deberta-v3-large",
-    "gte-base-en-v1.5",
-    "gte-large-en-v1.5",
-    "xlnet-base-cased",
-    "xlnet-large-cased",
-    "e5-small-v2",
-    "e5-base-v2",
-    "e5-large-v2"
+    "google-bert/bert-base-uncased",
+    "google-bert/bert-large-uncased",
+    "FacebookAI/roberta-base",
+    "FacebookAI/roberta-large",
+    "answerdotai/ModernBERT-base",
+    "answerdotai/ModernBERT-large",
+    "ibm-granite/granite-embedding-30m-english",
+    "ibm-granite/granite-embedding-125m-english",
+    "microsoft/deberta-v3-xsmall",
+    "microsoft/deberta-v3-small",
+    "microsoft/deberta-v3-base",
+    "microsoft/deberta-v3-large",
+    "Alibaba-NLP/gte-base-en-v1.5",
+    "Alibaba-NLP/gte-large-en-v1.5",
+    "xlnet/xlnet-base-cased",
+    "xlnet/xlnet-large-cased",
+    "intfloat/e5-small-v2",
+    "intfloat/e5-base-v2",
+    "intfloat/e5-large-v2"
 ]
 
 FINE_TUNING_STRATEGIES = ["lora", "ia3", "full_fine_tuning", "head_only"]

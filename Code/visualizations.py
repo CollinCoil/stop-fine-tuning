@@ -62,7 +62,7 @@ def plot_metric_comparison(embed_results, finetune_results, metric, output_path)
                                 ncol=len(strategies))
     
     plt.subplots_adjust(bottom=0.25)
-    plt.savefig(output_path, dpi=300, bbox_inches='tight')
+    plt.savefig(output_path, dpi=150, bbox_inches='tight')
     plt.close()
 
 # Main execution
@@ -73,13 +73,13 @@ metrics = ['Accuracy', 'F1_Micro', 'F1_Macro', 'F1_Weighted']
 os.makedirs('Results/images', exist_ok=True)
 
 for metric in metrics:
-    embed_results = pd.read_csv('Results/embedding_classification_results.csv')
-    finetune_results = pd.read_csv('Results/fine_tuning_classification_results.csv')
+    embed_results = pd.read_csv('Results/Government_Documents/embedding_classification_results.csv')
+    finetune_results = pd.read_csv('Results/Government_Documents/fine_tuning_classification_results.csv')
     plot_metric_comparison(
         embed_results, 
         finetune_results, 
         metric,
-        f'Results/images/classification_{metric.lower()}_comparison.png'
+        f'Results/Government_Documents/images/classification_{metric.lower()}_comparison.png'
     )
 
 
@@ -162,7 +162,7 @@ def plot_ablation_study(embed_results, finetune_results, metric, output_path):
     plt.suptitle(f'{metric.replace("_", " ")} vs Training Data Percentage', 
                  fontsize=16, y=1.02)
     plt.tight_layout()
-    plt.savefig(output_path, dpi=300, bbox_inches='tight')
+    plt.savefig(output_path, dpi=150, bbox_inches='tight')
     plt.close()
 
 # Main execution
@@ -172,12 +172,12 @@ metrics = ['Accuracy', 'F1_Micro', 'F1_Macro', 'F1_Weighted']
 os.makedirs('Results/images', exist_ok=True)
 
 for metric in metrics:
-    embed_results = pd.read_csv('Results/embedding_classification_ablation.csv')
-    finetune_results = pd.read_csv('Results/fine_tuning_classification_ablation.csv')
+    embed_results = pd.read_csv('Results/Government_Documents/embedding_classification_ablation.csv')
+    finetune_results = pd.read_csv('Results/Government_Documents/fine_tuning_classification_ablation.csv')
     
     plot_ablation_study(
         embed_results,
         finetune_results,
         metric,
-        f'Results/images/ablation_{metric.lower()}_comparison.png'
+        f'Results/Government_Documents/images/ablation_{metric.lower()}_comparison.png'
     )
