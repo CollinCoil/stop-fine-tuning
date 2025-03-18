@@ -1,7 +1,7 @@
 import time
 import pandas as pd
 import numpy as np
-from sklearn.model_selection import ParameterGrid
+from sklearn.model_selection import ParameterGrid, train_test_split
 from sklearn.metrics import accuracy_score, f1_score
 from sklearn.linear_model import LogisticRegression
 from sklearn.neighbors import KNeighborsClassifier
@@ -176,9 +176,11 @@ def run_experiments(models=MODELS):
 
     # Load all datasets
     print("Loading datasets...")
-    train_texts, train_labels = load_data("https://raw.githubusercontent.com/t-davidson/hate-speech-and-offensive-language/refs/heads/master/data/labeled_data.csv")
-    val_texts, val_labels = load_data("https://raw.githubusercontent.com/t-davidson/hate-speech-and-offensive-language/refs/heads/master/data/labeled_data.csv")
-    test_texts, test_labels = load_data("https://raw.githubusercontent.com/t-davidson/hate-speech-and-offensive-language/refs/heads/master/data/labeled_data.csv")
+    texts, labels = load_data("https://raw.githubusercontent.com/t-davidson/hate-speech-and-offensive-language/refs/heads/master/data/labeled_data.csv")
+
+    # Split the data into training, validation, and testing sets
+    train_texts, temp_texts, train_labels, temp_labels = train_test_split(texts, labels, test_size=0.2, random_state=2025)
+    val_texts, test_texts, val_labels, test_labels = train_test_split(temp_texts, temp_labels, test_size=0.5, random_state=2025)
 
     for model_name in tqdm(models, desc="Processing models"):
         start_time = time.time()
@@ -218,4 +220,3 @@ def run_experiments(models=MODELS):
 if __name__ == "__main__":
     # Run experiments
     final_results = run_experiments()
-    

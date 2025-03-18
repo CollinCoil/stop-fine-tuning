@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import torch
 from sklearn.metrics import accuracy_score, f1_score
+from sklearn.model_selection import train_test_split
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, Trainer, TrainingArguments
 from torch.utils.data import Dataset
 from sklearn.preprocessing import LabelEncoder
@@ -188,9 +189,11 @@ def run_experiments():
     total_experiments = len(FINE_TUNING_STRATEGIES) * len(MODELS)
 
     print("Loading and preprocessing datasets...")
-    train_texts, train_labels = load_data("https://raw.githubusercontent.com/t-davidson/hate-speech-and-offensive-language/refs/heads/master/data/labeled_data.csv")
-    val_texts, val_labels = load_data("https://raw.githubusercontent.com/t-davidson/hate-speech-and-offensive-language/refs/heads/master/data/labeled_data.csv")
-    test_texts, test_labels = load_data("https://raw.githubusercontent.com/t-davidson/hate-speech-and-offensive-language/refs/heads/master/data/labeled_data.csv")
+    texts, labels = load_data("https://raw.githubusercontent.com/t-davidson/hate-speech-and-offensive-language/refs/heads/master/data/labeled_data.csv")
+
+    # Split the data into training, validation, and testing sets
+    train_texts, temp_texts, train_labels, temp_labels = train_test_split(texts, labels, test_size=0.2, random_state=2025)
+    val_texts, test_texts, val_labels, test_labels = train_test_split(temp_texts, temp_labels, test_size=0.5, random_state=2025)
 
     label_encoder = LabelEncoder()
     train_labels = label_encoder.fit_transform(train_labels)

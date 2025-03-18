@@ -5,6 +5,7 @@ import time
 from transformers import AutoTokenizer, AutoModelForCausalLM, GenerationConfig
 from transformers import LogitsProcessor
 from sklearn.metrics import accuracy_score, f1_score
+from sklearn.model_selection import train_test_split
 from tqdm import tqdm
 import gc
 import os
@@ -148,7 +149,12 @@ def evaluate_model(model_name, test_texts, test_labels, label_options):
     }
 
 def run_experiments():
-    test_texts, test_labels = load_data("https://raw.githubusercontent.com/t-davidson/hate-speech-and-offensive-language/refs/heads/master/data/labeled_data.csv")
+    texts, labels = load_data("https://raw.githubusercontent.com/t-davidson/hate-speech-and-offensive-language/refs/heads/master/data/labeled_data.csv")
+
+    # Split the data into training, validation, and testing sets
+    train_texts, temp_texts, train_labels, temp_labels = train_test_split(texts, labels, test_size=0.2, random_state=2025)
+    val_texts, test_texts, val_labels, test_labels = train_test_split(temp_texts, temp_labels, test_size=0.5, random_state=2025)
+
     label_options = list(LABEL_MAPPING.values())
 
     results = []
