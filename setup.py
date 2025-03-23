@@ -11,7 +11,7 @@ setup(
     packages=find_packages(),
     install_requires=parse_requirements('requirements.txt'),
     include_package_data=True,
-    description='This repository contains code, pretrained models, and explanations for how to use large language models and a variety of other natural language processing techniques to analyze congressional hearings.',
+    description='This repository contains software to replicate the data collection and analysis of "Stop Wasting Time Fine-Tuning: Traditional Classifiers Shine with LLM Embeddings for Political Textual Analysis."',
     author='Collin Coil',
     author_email='collin.a.coil@gmail.com',
     url='https://github.com/CollinCoil/stop-fine-tuning',
