@@ -44,7 +44,6 @@ def plot_metric_comparison(embed_results, finetune_results, metric, output_path,
     ax.grid(True, axis='x', linestyle='--', alpha=0.7)
     ax.set_xlabel(metric.replace('_', ' '), fontsize=12)
     ax.set_ylabel('Model', fontsize=12)
-    plt.title(f'{metric.replace("_", " ")} Comparison for {dataset_name.replace("_", " ")} Dataset', fontsize=14, pad=20)
 
     embed_legend = plt.legend(handles=[plt.scatter([], [], marker='o', color=color_dict[c], s=100, label=c)
                                      for c in classifiers],
@@ -69,19 +68,21 @@ def plot_metric_comparison(embed_results, finetune_results, metric, output_path,
 sns.set_style("whitegrid")
 
 metrics = ['Accuracy', 'F1_Micro', 'F1_Macro', 'F1_Weighted']
-dataset_names = ['Government_Documents', 'Hate_Speech', 'Liar2']
+# dataset_names = ['Government_Documents', 'Hate_Speech', 'Liar2']
+dataset_names = ['Liar2']
+
 
 
 for metric in metrics:
     for dataset_name in dataset_names:
         os.makedirs(f'Results/{dataset_name}/images', exist_ok=True)
-        embed_results = pd.read_csv(f'Results/{dataset_name}/embedding_classification_results.csv')
-        finetune_results = pd.read_csv(f'Results/{dataset_name}/fine_tuning_classification_results.csv')
+        embed_results = pd.read_csv(f'Results/{dataset_name}/embedding_classification_results_with_justification.csv')
+        finetune_results = pd.read_csv(f'Results/{dataset_name}/fine_tuning_classification_results_with_justification.csv')
         plot_metric_comparison(
             embed_results,
             finetune_results,
             metric,
-            f'Results/{dataset_name}/images/classification_{metric.lower()}_comparison.png',
+            f'Results/{dataset_name}/images/classification_{metric.lower()}_comparison_with_justification.png',
             dataset_name
         )
 
@@ -162,8 +163,6 @@ def plot_ablation_study(embed_results, finetune_results, metric, output_path, da
                                  loc='lower center',
                                  ncol=len(strategies))
 
-    plt.suptitle(f'{metric.replace("_", " ")} vs Training Data Percentage for {dataset_name.replace("_", " ")} Dataset',
-                 fontsize=16, y=1.02)
     plt.tight_layout()
     plt.savefig(output_path, dpi=150, bbox_inches='tight')
     plt.close()
@@ -175,14 +174,14 @@ metrics = ['Accuracy', 'F1_Micro', 'F1_Macro', 'F1_Weighted']
 dataset_name = 'Government_Documents'
 os.makedirs('Results/images', exist_ok=True)
 
-for metric in metrics:
-    embed_results = pd.read_csv(f'Results/{dataset_name}/embedding_classification_ablation.csv')
-    finetune_results = pd.read_csv(f'Results/{dataset_name}/fine_tuning_classification_ablation.csv')
+# for metric in metrics:
+#     embed_results = pd.read_csv(f'Results/{dataset_name}/embedding_classification_ablation.csv')
+#     finetune_results = pd.read_csv(f'Results/{dataset_name}/fine_tuning_classification_ablation.csv')
 
-    plot_ablation_study(
-        embed_results,
-        finetune_results,
-        metric,
-        f'Results/{dataset_name}/images/ablation_{metric.lower()}_comparison.png',
-        dataset_name
-    )
+#     plot_ablation_study(
+#         embed_results,
+#         finetune_results,
+#         metric,
+#         f'Results/{dataset_name}/images/ablation_{metric.lower()}_comparison.png',
+#         dataset_name
+#     )
