@@ -68,21 +68,21 @@ def plot_metric_comparison(embed_results, finetune_results, metric, output_path,
 sns.set_style("whitegrid")
 
 metrics = ['Accuracy', 'F1_Micro', 'F1_Macro', 'F1_Weighted']
-# dataset_names = ['Government_Documents', 'Hate_Speech', 'Liar2']
-dataset_names = ['Liar2']
+dataset_names = ['Government_Documents', 'Hate_Speech', 'Liar2']
+
 
 
 
 for metric in metrics:
     for dataset_name in dataset_names:
         os.makedirs(f'Results/{dataset_name}/images', exist_ok=True)
-        embed_results = pd.read_csv(f'Results/{dataset_name}/embedding_classification_results_with_justification.csv')
-        finetune_results = pd.read_csv(f'Results/{dataset_name}/fine_tuning_classification_results_with_justification.csv')
+        embed_results = pd.read_csv(f'Results/{dataset_name}/embedding_classification_results.csv')
+        finetune_results = pd.read_csv(f'Results/{dataset_name}/fine_tuning_classification_results.csv')
         plot_metric_comparison(
             embed_results,
             finetune_results,
             metric,
-            f'Results/{dataset_name}/images/classification_{metric.lower()}_comparison_with_justification.png',
+            f'Results/{dataset_name}/images/classification_{metric.lower()}_comparison.png',
             dataset_name
         )
 
