@@ -11,7 +11,7 @@ import gc
 import os
 from huggingface_hub import login
 
-login("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")
+login("YOUR_TOKEN")
 
 DECODER_MODELS = [
     "meta-llama/Llama-3.1-8B",
