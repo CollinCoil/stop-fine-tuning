@@ -12,7 +12,7 @@ import os
 from huggingface_hub import login
 
 # Login using your Hugging Face token
-login("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")
+login("YOUR_TOKEN")
 
 # Define models to test
 DECODER_MODELS = [
