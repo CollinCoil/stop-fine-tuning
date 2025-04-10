@@ -10,11 +10,20 @@ def plot_metric_comparison(embed_results, finetune_results, metric, output_path,
     strategy_names = {
         "lora": "LoRA",
         "ia3": "IA3",
-        "full_fine_tuning": "Full Model",
-        "head_only": "Classification Head"
+        "full_fine_tuning": "Full",
+        "head_only": "Head"
+    }
+
+    classifier_names = {
+        "LogisticRegression": "LR",
+        "KNN": "KNN",
+        "SVM": "SVM",
+        "MLP": "MLP",
+        "XGBoost": "XGBoost"
     }
 
     finetune_results['Strategy'] = finetune_results['Strategy'].map(strategy_names)
+    embed_results['Classifier'] = embed_results['Classifier'].map(classifier_names)
 
     classifiers = embed_results['Classifier'].unique()
     strategies = finetune_results['Strategy'].unique()
@@ -98,11 +107,20 @@ def plot_ablation_study(embed_results, finetune_results, metric, output_path, da
     strategy_names = {
         "lora": "LoRA",
         "ia3": "IA3",
-        "full_fine_tuning": "Full Model",
-        "head_only": "Classification Head"
+        "full_fine_tuning": "Full",
+        "head_only": "Head"
+    }
+
+    classifier_names = {
+        "LogisticRegression": "LR",
+        "KNN": "KNN",
+        "SVM": "SVM",
+        "MLP": "MLP",
+        "XGBoost": "XGBoost"
     }
 
     finetune_results['Strategy'] = finetune_results['Strategy'].map(strategy_names)
+    embed_results['Classifier'] = embed_results['Classifier'].map(classifier_names)
 
     # Filter for base/125 models
     base_models = [model for model in embed_results['EmbeddingModel'].unique()
@@ -174,14 +192,14 @@ metrics = ['Accuracy', 'F1_Micro', 'F1_Macro', 'F1_Weighted']
 dataset_name = 'Government_Documents'
 os.makedirs('Results/images', exist_ok=True)
 
-# for metric in metrics:
-#     embed_results = pd.read_csv(f'Results/{dataset_name}/embedding_classification_ablation.csv')
-#     finetune_results = pd.read_csv(f'Results/{dataset_name}/fine_tuning_classification_ablation.csv')
+for metric in metrics:
+    embed_results = pd.read_csv(f'Results/{dataset_name}/embedding_classification_ablation.csv')
+    finetune_results = pd.read_csv(f'Results/{dataset_name}/fine_tuning_classification_ablation.csv')
 
-#     plot_ablation_study(
-#         embed_results,
-#         finetune_results,
-#         metric,
-#         f'Results/{dataset_name}/images/ablation_{metric.lower()}_comparison.png',
-#         dataset_name
-#     )
+    plot_ablation_study(
+        embed_results,
+        finetune_results,
+        metric,
+        f'Results/{dataset_name}/images/ablation_{metric.lower()}_comparison.png',
+        dataset_name
+    )
